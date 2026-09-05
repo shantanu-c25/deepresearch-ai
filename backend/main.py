@@ -2,6 +2,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from backend.orchestrator import run_deep_research
 from backend.services.gemini_service import generate_response
 
 
@@ -28,6 +29,18 @@ class GenerateResponse(BaseModel):
     response: str
 
 
+class ResearchRequest(BaseModel):
+    question: str
+
+
+class ResearchResponse(BaseModel):
+    question: str
+    research_brief: str
+    critical_analysis: str
+    insights: str
+    final_report: str
+
+
 @app.get("/health")
 def health_check():
     return {
@@ -48,4 +61,15 @@ def generate_ai_response(request: GenerateRequest):
         raise HTTPException(
             status_code=500,
             detail="Failed to generate AI response.",
+        )
+
+
+@app.post("/research", response_model=ResearchResponse)
+def run_research(request: ResearchRequest):
+    try:
+        return run_deep_research(request.question)
+    except Exception:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to complete deep research.",
         )
