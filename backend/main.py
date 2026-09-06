@@ -1,9 +1,14 @@
+import logging
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from backend.orchestrator import run_deep_research
 from backend.services.gemini_service import generate_response
+
+
+logger = logging.getLogger(__name__)
 
 
 app = FastAPI(
@@ -14,7 +19,9 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[
+        "http://localhost:3000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -49,38 +56,78 @@ def health_check():
     }
 
 
-@app.post("/ai/generate", response_model=GenerateResponse)
-def generate_ai_response(request: GenerateRequest):
+@app.post(
+    "/ai/generate",
+    response_model=GenerateResponse,
+)
+def generate_ai_response(
+    request: GenerateRequest,
+):
     try:
-        response = generate_response(request.prompt)
+        response = generate_response(
+            request.prompt
+        )
 
         return {
             "response": response,
         }
+
     except Exception:
+        logger.exception(
+            "Simple Gemini generation failed."
+        )
+
         raise HTTPException(
             status_code=500,
-            detail="Failed to generate AI response.",
+            detail=(
+                "Failed to generate AI response."
+            ),
         )
 
 
-@app.post("/research", response_model=ResearchResponse)
-def run_research(request: ResearchRequest):
+@app.post(
+    "/research",
+    response_model=ResearchResponse,
+)
+def run_research(
+    request: ResearchRequest,
+):
     try:
-        return run_deep_research(request.question)
+        return run_deep_research(
+            request.question
+        )
+
     except Exception as exc:
-        error_code = getattr(exc, "code", None)
+        error_code = getattr(
+            exc,
+            "code",
+            None,
+        )
 
         if error_code == 429:
+            logger.warning(
+                "Deep research stopped because "
+                "the Gemini quota was exhausted."
+            )
+
             raise HTTPException(
                 status_code=429,
                 detail=(
-                    "Gemini free-tier quota has been reached. "
+                    "Gemini free-tier quota "
+                    "has been reached. "
                     "Please try again later."
                 ),
             ) from exc
 
+        logger.exception(
+            "Deep research failed "
+            "with an unexpected error."
+        )
+
         raise HTTPException(
             status_code=500,
-            detail="Failed to complete deep research.",
+            detail=(
+                "Failed to complete "
+                "deep research."
+            ),
         ) from exc

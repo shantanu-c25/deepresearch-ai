@@ -1,26 +1,351 @@
 @import "tailwindcss";
 
+/* =========================================================
+   DeepResearch AI Design System
+   ========================================================= */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: light;
+
+  /* Surfaces */
+  --app-bg: #f7f9fc;
+  --surface: #ffffff;
+  --surface-subtle: #f1f5f9;
+  --surface-hover: #eef4ff;
+  --surface-elevated: #ffffff;
+
+  /* Text */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+
+  /* Borders */
+  --border: #d8e0eb;
+  --border-strong: #b8c4d4;
+
+  /* Brand */
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-soft: #eff6ff;
+  --primary-text: #ffffff;
+
+  /* Semantic */
+  --success: #15803d;
+  --success-soft: #f0fdf4;
+  --success-border: #bbf7d0;
+
+  --warning: #a8550a;
+  --warning-soft: #fffbeb;
+  --warning-border: #fcd34d;
+
+  --danger: #b91c1c;
+  --danger-soft: #fef2f2;
+  --danger-border: #fecaca;
+
+  --insight: #6d28d9;
+  --insight-soft: #f5f3ff;
+  --insight-border: #ddd6fe;
+
+  /* Focus */
+  --focus-ring: #2563eb;
+
+  /* Layout */
+  --content-width: 1180px;
+  --report-width: 860px;
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+
+  /* Shadows */
+  --shadow-sm:
+    0 1px 2px rgb(15 23 42 / 0.04),
+    0 1px 3px rgb(15 23 42 / 0.06);
+
+  --shadow-md:
+    0 8px 24px rgb(15 23 42 / 0.08);
+
+  --shadow-lg:
+    0 18px 45px rgb(15 23 42 / 0.1);
 }
 
+
+/* =========================================================
+   Explicit dark theme
+   ========================================================= */
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --app-bg: #0b1220;
+  --surface: #111b2e;
+  --surface-subtle: #172338;
+  --surface-hover: #1b2b45;
+  --surface-elevated: #162238;
+
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #a8b5c7;
+
+  --border: #2b3a52;
+  --border-strong: #42526b;
+
+  --primary: #60a5fa;
+  --primary-hover: #93c5fd;
+  --primary-soft: #172b4d;
+  --primary-text: #08111f;
+
+  --success: #4ade80;
+  --success-soft: #102a1c;
+  --success-border: #216e3b;
+
+  --warning: #fbbf24;
+  --warning-soft: #30240d;
+  --warning-border: #725611;
+
+  --danger: #f87171;
+  --danger-soft: #351719;
+  --danger-border: #7f2d31;
+
+  --insight: #c4b5fd;
+  --insight-soft: #241b3f;
+  --insight-border: #554481;
+
+  --focus-ring: #93c5fd;
+
+  --shadow-sm:
+    0 1px 2px rgb(0 0 0 / 0.28),
+    0 1px 3px rgb(0 0 0 / 0.2);
+
+  --shadow-md:
+    0 12px 32px rgb(0 0 0 / 0.28);
+
+  --shadow-lg:
+    0 20px 50px rgb(0 0 0 / 0.34);
+}
+
+
+/* =========================================================
+   System dark theme
+   Applied when no explicit light theme is selected.
+   ========================================================= */
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --app-bg: #0b1220;
+    --surface: #111b2e;
+    --surface-subtle: #172338;
+    --surface-hover: #1b2b45;
+    --surface-elevated: #162238;
+
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-muted: #a8b5c7;
+
+    --border: #2b3a52;
+    --border-strong: #42526b;
+
+    --primary: #60a5fa;
+    --primary-hover: #93c5fd;
+    --primary-soft: #172b4d;
+    --primary-text: #08111f;
+
+    --success: #4ade80;
+    --success-soft: #102a1c;
+    --success-border: #216e3b;
+
+    --warning: #fbbf24;
+    --warning-soft: #30240d;
+    --warning-border: #725611;
+
+    --danger: #f87171;
+    --danger-soft: #351719;
+    --danger-border: #7f2d31;
+
+    --insight: #c4b5fd;
+    --insight-soft: #241b3f;
+    --insight-border: #554481;
+
+    --focus-ring: #93c5fd;
+  }
+}
+
+
+/* =========================================================
+   Tailwind theme bridge
+   ========================================================= */
+
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--app-bg);
+  --color-foreground: var(--text-primary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+
+/* =========================================================
+   Base
+   ========================================================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--app-bg);
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+  margin: 0;
+
+  background: var(--app-bg);
+  color: var(--text-primary);
+
+  font-family:
+    var(--font-geist-sans),
+    Arial,
+    Helvetica,
+    sans-serif;
+
+  line-height: 1.6;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+textarea {
+  resize: vertical;
+}
+
+a {
+  color: inherit;
+}
+
+img,
+svg {
+  display: block;
+}
+
+
+/* =========================================================
+   Accessible focus
+   ========================================================= */
+
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: var(--primary);
+  color: #ffffff;
+}
+
+
+/* =========================================================
+   Screen reader utility
+   ========================================================= */
+
+.sr-only {
+  position: absolute;
+
+  width: 1px;
+  height: 1px;
+
+  padding: 0;
+  margin: -1px;
+
+  overflow: hidden;
+
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+
+  border: 0;
+}
+
+
+/* =========================================================
+   Shared app layout helpers
+   ========================================================= */
+
+.app-container {
+  width: min(
+    calc(100% - 32px),
+    var(--content-width)
+  );
+
+  margin-inline: auto;
+}
+
+.report-container {
+  width: min(
+    100%,
+    var(--report-width)
+  );
+
+  margin-inline: auto;
+}
+
+
+/* =========================================================
+   Reduced motion
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+
+/* =========================================================
+   Mobile
+   ========================================================= */
+
+@media (max-width: 640px) {
+  .app-container {
+    width: min(
+      calc(100% - 24px),
+      var(--content-width)
+    );
+  }
 }
