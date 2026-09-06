@@ -2,7 +2,13 @@ import logging
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import (
+    BaseModel,
+    Field,
+)
+from backend.models.source import (
+    ResearchSource,
+)
 
 from backend.orchestrator import run_deep_research
 from backend.services.gemini_service import generate_response
@@ -42,10 +48,20 @@ class ResearchRequest(BaseModel):
 
 class ResearchResponse(BaseModel):
     question: str
+
     research_brief: str
+
     critical_analysis: str
+
     insights: str
+
     final_report: str
+
+    sources: list[
+        ResearchSource
+    ] = Field(
+        default_factory=list
+    )
 
 
 @app.get("/health")

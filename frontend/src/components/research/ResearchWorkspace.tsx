@@ -18,6 +18,10 @@ import {
   ResearchTabs,
 } from "@/components/research/ResearchTabs";
 
+import {
+  SourcesPanel,
+} from "@/components/research/SourcesPanel";
+
 import type {
   ResearchResponse,
   ResearchTabId,
@@ -189,40 +193,11 @@ export function ResearchWorkspace({
       "sources"
     ) {
       return (
-        <Card
-          tone="subtle"
-          className="
-            p-5
-            shadow-none
-            sm:p-6
-          "
-        >
-          <h3
-            className="
-              text-lg
-              font-semibold
-              text-[var(--text-primary)]
-            "
-          >
-            Sources & Evidence
-          </h3>
-
-          <p
-            className="
-              mt-2
-              text-sm
-              leading-6
-              text-[var(--text-secondary)]
-            "
-          >
-            Real source retrieval has
-            not been enabled yet.
-            Sources and citations will
-            appear here after the
-            retrieval and validation
-            layer is implemented.
-          </p>
-        </Card>
+        <SourcesPanel
+          sources={
+            result.sources ?? []
+          }
+        />
       );
     }
 
@@ -387,7 +362,7 @@ export function ResearchWorkspace({
           tabIndex={0}
           className="
             report-container
-             min-h-72
+            min-h-72
             px-5
             py-7
             sm:px-7

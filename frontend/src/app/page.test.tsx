@@ -108,6 +108,8 @@ describe("Home page", () => {
 
         final_report:
           "RAG combines retrieval with generation to produce grounded responses.",
+
+        sources: [],
       });
 
       renderHome();
@@ -216,6 +218,190 @@ describe("Home page", () => {
         )
       ).toHaveTextContent(
         "Gemini free-tier quota has been reached. Please try again later."
+      );
+    }
+  );
+
+
+  it(
+    "shows validated research sources in the Sources tab",
+    async () => {
+      const user =
+        userEvent.setup();
+
+      mockedGetHealth.mockResolvedValue({
+        status: "ok",
+        service: "deep-research-api",
+      });
+
+      mockedRunResearch.mockResolvedValue({
+        question:
+          "How are AI agents used in healthcare?",
+
+        research_brief:
+          "AI agents can support healthcare workflows [S1].",
+
+        critical_analysis:
+          "Healthcare AI requires careful validation.",
+
+        insights:
+          "Agentic systems may improve workflow efficiency.",
+
+        final_report:
+          "AI agents have several healthcare applications.",
+
+        sources: [
+          {
+            id: "source-1",
+
+            citation_id: "S1",
+
+            title:
+              "AI Agents in Healthcare",
+
+            url:
+              "https://www.ibm.com/think/topics/ai-agents-healthcare",
+
+            domain: "ibm.com",
+
+            source_type: "web",
+
+            provider: "tavily",
+
+            snippet:
+              "AI agents can support healthcare workflows.",
+
+            content:
+              "AI agents can support healthcare workflows.",
+
+            authors: [],
+
+            published_date: null,
+
+            relevance_score: 0.82,
+
+            credibility: "medium",
+
+            validation_status:
+              "accepted",
+
+            validation_notes: [
+              (
+                "Vendor-authored source; "
+                + "useful for industry perspective."
+              ),
+            ],
+          },
+        ],
+      });
+
+      renderHome();
+
+      const textarea =
+        screen.getByLabelText(
+          "What would you like to research?"
+        );
+
+      await user.type(
+        textarea,
+        "How are AI agents used in healthcare?"
+      );
+
+      await user.click(
+        screen.getByRole(
+          "button",
+          {
+            name:
+              "Start Deep Research",
+          }
+        )
+      );
+
+      expect(
+        await screen.findByRole(
+          "heading",
+          {
+            name:
+              "Research Report",
+          }
+        )
+      ).toBeInTheDocument();
+
+      await user.click(
+        screen.getByRole(
+          "tab",
+          {
+            name: "Sources",
+          }
+        )
+      );
+
+      expect(
+        screen.getByRole(
+          "heading",
+          {
+            name:
+              "Sources & Evidence",
+          }
+        )
+      ).toBeInTheDocument();
+
+      expect(
+      screen.getByRole(
+        "heading",
+        {
+          name:
+            "AI Agents in Healthcare",
+          level: 4,
+        }
+      )
+    ).toBeInTheDocument();
+
+      expect(
+        screen.getByText(
+          "[S1]"
+        )
+      ).toBeInTheDocument();
+
+      expect(
+        screen.getByText(
+          "ibm.com"
+        )
+      ).toBeInTheDocument();
+
+      expect(
+        screen.getByText(
+          "Credibility: Medium"
+        )
+      ).toBeInTheDocument();
+
+      expect(
+        screen.getByText(
+          "Relevance: 82%"
+        )
+      ).toBeInTheDocument();
+
+      const sourceLink =
+        screen.getByRole(
+          "link",
+          {
+            name:
+              /Open Source/i,
+          }
+        );
+
+      expect(
+        sourceLink
+      ).toHaveAttribute(
+        "href",
+        "https://www.ibm.com/think/topics/ai-agents-healthcare"
+      );
+
+      expect(
+        sourceLink
+      ).toHaveAttribute(
+        "target",
+        "_blank"
       );
     }
   );
