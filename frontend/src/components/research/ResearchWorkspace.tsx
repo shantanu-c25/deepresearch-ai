@@ -11,6 +11,10 @@ import {
 } from "@/components/ui";
 
 import {
+  ReportActions,
+} from "@/components/research/ReportActions";
+
+import {
   ResearchTabs,
 } from "@/components/research/ResearchTabs";
 
@@ -359,6 +363,10 @@ export function ResearchWorkspace({
               final synthesis.
             </p>
           </div>
+
+          <ReportActions
+            result={result}
+          />
         </div>
 
 
@@ -379,10 +387,12 @@ export function ResearchWorkspace({
           tabIndex={0}
           className="
             report-container
+             min-h-72
             px-5
             py-7
             sm:px-7
-            sm:py-8
+            sm:py-9
+            lg:px-10
           "
         >
           {renderPanel()}
