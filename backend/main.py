@@ -68,8 +68,19 @@ def generate_ai_response(request: GenerateRequest):
 def run_research(request: ResearchRequest):
     try:
         return run_deep_research(request.question)
-    except Exception:
+    except Exception as exc:
+        error_code = getattr(exc, "code", None)
+
+        if error_code == 429:
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    "Gemini free-tier quota has been reached. "
+                    "Please try again later."
+                ),
+            ) from exc
+
         raise HTTPException(
             status_code=500,
             detail="Failed to complete deep research.",
-        )
+        ) from exc

@@ -2,13 +2,17 @@
 
 import { FormEvent, useEffect, useState } from "react";
 
-import { generateAI, getHealth } from "@/lib/api";
+import {
+  getHealth,
+  ResearchResponse,
+  runResearch,
+} from "@/lib/api";
 
 
 export default function Home() {
   const [backendStatus, setBackendStatus] = useState("Checking...");
   const [prompt, setPrompt] = useState("");
-  const [result, setResult] = useState("");
+  const [result, setResult] = useState<ResearchResponse | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -40,13 +44,17 @@ export default function Home() {
 
     setIsLoading(true);
     setError("");
-    setResult("");
+    setResult(null);
 
     try {
-      const data = await generateAI(trimmedPrompt);
-      setResult(data.response);
-    } catch {
-      setError("Unable to generate a response. Please try again.");
+      const data = await runResearch(trimmedPrompt);
+      setResult(data);
+    } catch (error) {
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError("Unable to complete the research. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -84,8 +92,22 @@ export default function Home() {
 
       {result && (
         <section>
-          <h2>Research Result</h2>
-          <p>{result}</p>
+          <h2>Research Report</h2>
+
+          <h3>Research Question</h3>
+          <p>{result.question}</p>
+
+          <h3>Research Brief</h3>
+          <p>{result.research_brief}</p>
+
+          <h3>Critical Analysis</h3>
+          <p>{result.critical_analysis}</p>
+
+          <h3>Insights</h3>
+          <p>{result.insights}</p>
+
+          <h3>Final Report</h3>
+          <p>{result.final_report}</p>
         </section>
       )}
     </main>
