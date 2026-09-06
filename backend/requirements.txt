@@ -5,3 +5,4 @@ google-genai==2.22.0
 python-dotenv==1.2.3
 tavily-python==0.8.1
 arxiv==4.0.1
+sentence-transformers==5.1.0

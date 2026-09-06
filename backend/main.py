@@ -12,6 +12,8 @@ from backend.models.source import (
 
 from backend.orchestrator import run_deep_research
 from backend.services.gemini_service import generate_response
+from backend.rag.models import RAGContext
+from backend.rag.service import RAGPipelineService
 
 
 logger = logging.getLogger(__name__)
@@ -62,6 +64,25 @@ class ResearchResponse(BaseModel):
     ] = Field(
         default_factory=list
     )
+
+
+class RAGRetrieveRequest(BaseModel):
+    question: str = Field(min_length=1)
+    top_k: int = Field(default=5, ge=1, le=20)
+
+
+class RAGRetrieveResponse(RAGContext):
+    pass
+
+
+rag_pipeline_service: RAGPipelineService | None = None
+
+
+def _get_rag_pipeline_service() -> RAGPipelineService:
+    global rag_pipeline_service
+    if rag_pipeline_service is None:
+        rag_pipeline_service = RAGPipelineService()
+    return rag_pipeline_service
 
 
 @app.get("/health")
@@ -146,4 +167,28 @@ def run_research(
                 "Failed to complete "
                 "deep research."
             ),
+        ) from exc
+
+
+@app.post(
+    "/rag/retrieve",
+    response_model=RAGRetrieveResponse,
+)
+def retrieve_rag_context(
+    request: RAGRetrieveRequest,
+):
+    if not request.question.strip():
+        raise HTTPException(status_code=422, detail="question cannot be blank")
+    try:
+        return _get_rag_pipeline_service().retrieve(
+            request.question,
+            top_k=request.top_k,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.exception("RAG retrieval failed.")
+        raise HTTPException(
+            status_code=502,
+            detail="RAG retrieval failed.",
         ) from exc
