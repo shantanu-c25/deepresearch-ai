@@ -100,8 +100,28 @@ export function SourceCard({
     source.snippet ||
     source.content;
 
+  const sourceElementId =
+    source.citation_id
+      ? `source-${source.citation_id}`
+      : undefined;
+
+  const sourceTitleId =
+    source.citation_id
+      ? `source-title-${source.citation_id}`
+      : undefined;
+
+
   return (
     <article
+      id={sourceElementId}
+      tabIndex={
+        source.citation_id
+          ? -1
+          : undefined
+      }
+      aria-labelledby={
+        sourceTitleId
+      }
       className="
         rounded-[var(--radius-lg)]
         border
@@ -109,6 +129,11 @@ export function SourceCard({
         bg-[var(--surface)]
         p-5
         shadow-[var(--shadow-sm)]
+        outline-none
+        transition
+        focus-visible:border-[var(--primary)]
+        focus-visible:ring-2
+        focus-visible:ring-[var(--primary)]/30
       "
     >
       <div
@@ -181,7 +206,9 @@ export function SourceCard({
             </span>
           </div>
 
+
           <h4
+            id={sourceTitleId}
             className="
               mt-3
               text-base
@@ -192,6 +219,7 @@ export function SourceCard({
           >
             {source.title}
           </h4>
+
 
           <p
             className="
@@ -204,6 +232,7 @@ export function SourceCard({
             {source.domain}
           </p>
         </div>
+
 
         <a
           href={source.url}
@@ -330,6 +359,54 @@ export function SourceCard({
           )}
         </span>
       </div>
+
+
+      {source.validation_notes.length > 0 && (
+        <div
+          className="
+            mt-4
+            rounded-[var(--radius-md)]
+            bg-[var(--surface-subtle)]
+            px-3
+            py-3
+          "
+        >
+          <p
+            className="
+              text-xs
+              font-semibold
+              text-[var(--text-primary)]
+            "
+          >
+            Validation notes
+          </p>
+
+          <ul
+            className="
+              mt-2
+              list-disc
+              space-y-1
+              pl-5
+              text-xs
+              leading-5
+              text-[var(--text-secondary)]
+            "
+          >
+            {source.validation_notes.map(
+              (
+                note,
+                index
+              ) => (
+                <li
+                  key={`${source.id}-note-${index}`}
+                >
+                  {note}
+                </li>
+              )
+            )}
+          </ul>
+        </div>
+      )}
     </article>
   );
 }

@@ -1,6 +1,7 @@
 import {
   render,
   screen,
+  waitFor,
 } from "@testing-library/react";
 
 import userEvent from "@testing-library/user-event";
@@ -347,15 +348,15 @@ describe("Home page", () => {
       ).toBeInTheDocument();
 
       expect(
-      screen.getByRole(
-        "heading",
-        {
-          name:
-            "AI Agents in Healthcare",
-          level: 4,
-        }
-      )
-    ).toBeInTheDocument();
+        screen.getByRole(
+          "heading",
+          {
+            name:
+              "AI Agents in Healthcare",
+            level: 4,
+          }
+        )
+      ).toBeInTheDocument();
 
       expect(
         screen.getByText(
@@ -403,6 +404,184 @@ describe("Home page", () => {
         "target",
         "_blank"
       );
+    }
+  );
+
+
+  it(
+    "opens the Sources tab and focuses the matching source when a citation is clicked",
+    async () => {
+      const user =
+        userEvent.setup();
+
+      mockedGetHealth.mockResolvedValue({
+        status: "ok",
+        service: "deep-research-api",
+      });
+
+      mockedRunResearch.mockResolvedValue({
+        question:
+          "How are AI agents used in healthcare?",
+
+        research_brief:
+          "AI agents can support healthcare workflows [S1].",
+
+        critical_analysis:
+          "Healthcare AI requires careful validation.",
+
+        insights:
+          "Agentic systems may improve workflow efficiency.",
+
+        final_report:
+          "AI agents may improve healthcare workflows [S1].",
+
+        sources: [
+          {
+            id: "source-1",
+
+            citation_id: "S1",
+
+            title:
+              "Healthcare AI Agent Research",
+
+            url:
+              "https://example.com/healthcare-ai-agents",
+
+            domain:
+              "example.com",
+
+            source_type:
+              "web",
+
+            provider:
+              "tavily",
+
+            snippet:
+              "Evidence about healthcare AI agents.",
+
+            content:
+              "Evidence about healthcare AI agents.",
+
+            authors: [],
+
+            published_date:
+              null,
+
+            relevance_score:
+              0.91,
+
+            credibility:
+              "medium",
+
+            validation_status:
+              "accepted",
+
+            validation_notes: [],
+          },
+        ],
+      });
+
+      renderHome();
+
+      const textarea =
+        screen.getByLabelText(
+          "What would you like to research?"
+        );
+
+      await user.type(
+        textarea,
+        "How are AI agents used in healthcare?"
+      );
+
+      await user.click(
+        screen.getByRole(
+          "button",
+          {
+            name:
+              "Start Deep Research",
+          }
+        )
+      );
+
+      expect(
+        await screen.findByRole(
+          "heading",
+          {
+            name:
+              "Research Report",
+          }
+        )
+      ).toBeInTheDocument();
+
+      const citationButton =
+        screen.getByRole(
+          "button",
+          {
+            name:
+              "View source S1",
+          }
+        );
+
+      expect(
+        citationButton
+      ).toHaveTextContent(
+        "[S1]"
+      );
+
+      await user.click(
+        citationButton
+      );
+
+      const sourcesTab =
+        screen.getByRole(
+          "tab",
+          {
+            name: "Sources",
+          }
+        );
+
+      expect(
+        sourcesTab
+      ).toHaveAttribute(
+        "aria-selected",
+        "true"
+      );
+
+      expect(
+        await screen.findByRole(
+          "heading",
+          {
+            name:
+              "Sources & Evidence",
+          }
+        )
+      ).toBeInTheDocument();
+
+      expect(
+        screen.getByRole(
+          "heading",
+          {
+            name:
+              "Healthcare AI Agent Research",
+            level: 4,
+          }
+        )
+      ).toBeInTheDocument();
+
+      const sourceCard =
+        document.getElementById(
+          "source-S1"
+        );
+
+      expect(
+        sourceCard
+      ).not.toBeNull();
+
+      await waitFor(() => {
+        expect(
+          sourceCard
+        ).toHaveFocus();
+      });
     }
   );
 });

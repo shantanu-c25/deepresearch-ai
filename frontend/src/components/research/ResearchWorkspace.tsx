@@ -35,15 +35,29 @@ type ResearchWorkspaceProps = {
 
 type ReportSectionProps = {
   content: string;
+
+  citationIds: string[];
+
+  onCitationClick: (
+    citationId: string
+  ) => void;
 };
 
 
 function ReportSection({
   content,
+  citationIds,
+  onCitationClick,
 }: ReportSectionProps) {
   return (
     <MarkdownRenderer
       content={content}
+      citationIds={
+        citationIds
+      }
+      onCitationClick={
+        onCitationClick
+      }
     />
   );
 }
@@ -59,6 +73,69 @@ export function ResearchWorkspace({
     useState<ResearchTabId>(
       "overview"
     );
+
+
+  const citationIds =
+    result.sources
+      .map(
+        (source) =>
+          source.citation_id
+      )
+      .filter(
+        (
+          citationId
+        ): citationId is string =>
+          Boolean(citationId)
+      );
+
+
+  function handleCitationClick(
+    citationId: string
+  ) {
+    const sourceExists =
+      result.sources.some(
+        (source) =>
+          source.citation_id ===
+          citationId
+      );
+
+
+    if (!sourceExists) {
+      return;
+    }
+
+
+    setActiveTab(
+      "sources"
+    );
+
+
+    window.setTimeout(
+      () => {
+        const sourceElement =
+          document.getElementById(
+            `source-${citationId}`
+          );
+
+
+        if (!sourceElement) {
+          return;
+        }
+
+
+        sourceElement.scrollIntoView?.({
+          behavior: "smooth",
+          block: "center",
+        });
+
+
+        sourceElement.focus({
+          preventScroll: true,
+        });
+      },
+      0
+    );
+  }
 
 
   function renderPanel() {
@@ -82,6 +159,12 @@ export function ResearchWorkspace({
             <ReportSection
               content={
                 result.research_brief
+              }
+              citationIds={
+                citationIds
+              }
+              onCitationClick={
+                handleCitationClick
               }
             />
           </div>
@@ -118,6 +201,12 @@ export function ResearchWorkspace({
               content={
                 result.critical_analysis
               }
+              citationIds={
+                citationIds
+              }
+              onCitationClick={
+                handleCitationClick
+              }
             />
           </div>
         </Card>
@@ -153,6 +242,12 @@ export function ResearchWorkspace({
               content={
                 result.insights
               }
+              citationIds={
+                citationIds
+              }
+              onCitationClick={
+                handleCitationClick
+              }
             />
           </div>
         </Card>
@@ -180,6 +275,12 @@ export function ResearchWorkspace({
             <ReportSection
               content={
                 result.final_report
+              }
+              citationIds={
+                citationIds
+              }
+              onCitationClick={
+                handleCitationClick
               }
             />
           </div>
@@ -240,6 +341,7 @@ export function ResearchWorkspace({
           {result.question}
         </blockquote>
 
+
         <div
           className="
             mt-8
@@ -262,6 +364,12 @@ export function ResearchWorkspace({
           <ReportSection
             content={
               result.research_brief
+            }
+            citationIds={
+              citationIds
+            }
+            onCitationClick={
+              handleCitationClick
             }
           />
         </div>
@@ -325,6 +433,7 @@ export function ResearchWorkspace({
               </Badge>
             </div>
 
+
             <p
               className="
                 mt-2
@@ -338,6 +447,7 @@ export function ResearchWorkspace({
               final synthesis.
             </p>
           </div>
+
 
           <ReportActions
             result={result}
