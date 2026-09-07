@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import (
     BaseModel,
@@ -14,6 +14,11 @@ from backend.orchestrator import run_deep_research
 from backend.services.gemini_service import generate_response
 from backend.rag.models import RAGContext
 from backend.rag.service import RAGPipelineService
+from backend.rag.uploaded_loader import (
+    DocumentLoadError,
+    MAX_UPLOAD_BYTES,
+    UploadedDocumentLoader,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -73,6 +78,15 @@ class RAGRetrieveRequest(BaseModel):
 
 class RAGRetrieveResponse(RAGContext):
     pass
+
+
+class UploadDocumentResponse(BaseModel):
+    status: str
+    document_id: str
+    filename: str
+    file_type: str
+    sections: int
+    chunks: int
 
 
 rag_pipeline_service: RAGPipelineService | None = None
@@ -192,3 +206,28 @@ def retrieve_rag_context(
             status_code=502,
             detail="RAG retrieval failed.",
         ) from exc
+
+
+@app.post("/rag/documents", response_model=UploadDocumentResponse, status_code=201)
+async def upload_rag_document(file: UploadFile):
+    data = await file.read()
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="uploaded file exceeds the 10 MB size limit")
+    try:
+        uploaded = UploadedDocumentLoader().load(data, file.filename or "", file.content_type)
+        chunks = _get_rag_pipeline_service().add_uploaded_document(uploaded)
+        return UploadDocumentResponse(
+            status="indexed",
+            document_id=uploaded.document.source_id,
+            filename=uploaded.filename,
+            file_type=uploaded.extension,
+            sections=uploaded.section_count,
+            chunks=len(chunks),
+        )
+    except DocumentLoadError as exc:
+        message = str(exc)
+        status_code = 415 if "unsupported file type" in message else 400
+        raise HTTPException(status_code=status_code, detail=message) from exc
+    except Exception as exc:
+        logger.exception("Uploaded document indexing failed.")
+        raise HTTPException(status_code=502, detail="Document indexing failed.") from exc

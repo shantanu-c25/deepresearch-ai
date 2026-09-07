@@ -29,6 +29,10 @@ import {
 } from "@/components/research/ResearchWorkspace";
 
 import {
+  DocumentUpload,
+} from "@/components/research/DocumentUpload";
+
+import {
   useBackendHealth,
 } from "@/hooks/useBackendHealth";
 
@@ -98,6 +102,8 @@ export default function Home() {
               Boolean(error)
             }
           />
+
+          <DocumentUpload />
 
           {error && (
             <ErrorAlert
