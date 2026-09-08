@@ -24,9 +24,22 @@ export type UploadDocumentResponse = {
 };
 
 
+export function getApiBaseUrl(): string {
+  return (
+    process.env.NEXT_PUBLIC_API_BASE_URL?.trim().replace(/\/+$/, "") ||
+    "http://localhost:8000"
+  );
+}
+
+
+export function apiUrl(path: string): string {
+  return `${getApiBaseUrl()}/${path.replace(/^\/+/, "")}`;
+}
+
+
 export async function getHealth(): Promise<HealthResponse> {
   const response = await fetch(
-    "http://127.0.0.1:8000/health"
+    apiUrl("health")
   );
 
   if (!response.ok) {
@@ -43,7 +56,7 @@ export async function generateAI(
   prompt: string
 ): Promise<GenerateAIResponse> {
   const response = await fetch(
-    "http://127.0.0.1:8000/ai/generate",
+    apiUrl("ai/generate"),
     {
       method: "POST",
       headers: {
@@ -69,7 +82,7 @@ export async function runResearch(
   question: string
 ): Promise<ResearchResponse> {
   const response = await fetch(
-    "http://127.0.0.1:8000/research",
+    apiUrl("research"),
     {
       method: "POST",
       headers: {
@@ -110,7 +123,7 @@ export async function uploadDocument(
   formData.append("file", file);
 
   const response = await fetch(
-    "http://127.0.0.1:8000/rag/documents",
+    apiUrl("rag/documents"),
     {
       method: "POST",
       body: formData,

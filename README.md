@@ -4,6 +4,24 @@ Multi-Agent AI Research & Intelligence Platform
 
 DeepResearch AI is a multi-agent research assistant that takes a user's research question and passes it through a coordinated AI pipeline.
 
+Zero-cost deployment preparation
+
+The recommended hackathon deployment keeps the current architecture:
+
+- Frontend: Vercel Hobby with `frontend` as the project root.
+- Backend: Render Free Web Service using `render.yaml`.
+- No database or persistent disk. Uploaded documents and vectors remain in memory and are cleared when the backend restarts.
+
+Render backend command:
+
+```text
+uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+```
+
+Set `GEMINI_API_KEY`, `TAVILY_API_KEY`, and `ALLOWED_ORIGINS` in Render. Set `NEXT_PUBLIC_API_BASE_URL` in Vercel to the Render service URL. Provider keys must never be placed in `NEXT_PUBLIC_*` variables.
+
+The local `sentence-transformers/all-MiniLM-L6-v2` embedding model loads lazily when RAG is first used. Render Free has limited memory, so the first upload or retrieval may be slow or exceed the service memory limit; this remains an explicit feasibility risk for manual deployment testing.
+
 Instead of asking a single AI model to produce one response, the platform uses specialized agents for research, critical analysis, insight generation, and final report building.
 
 Features
@@ -281,6 +299,10 @@ Add your Gemini API key:
 
 GEMINI_API_KEY=your_gemini_api_key_here
 
+TAVILY_API_KEY=your_tavily_api_key_here
+
+ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+
 Do not commit .env files or API keys to GitHub.
 
 Start the Backend
@@ -300,6 +322,10 @@ Open another terminal:
 cd frontend
 npm install
 npm run dev
+
+For a deployed backend, create `frontend/.env.local` with:
+
+NEXT_PUBLIC_API_BASE_URL=https://your-render-service.onrender.com
 
 Frontend URL:
 

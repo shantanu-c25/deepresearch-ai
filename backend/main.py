@@ -6,7 +6,7 @@ from pydantic import (
     BaseModel,
     Field,
 )
-from backend.config import load_backend_env
+from backend.config import get_allowed_origins, load_backend_env
 
 
 load_backend_env()
@@ -41,9 +41,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000"
-    ],
+    allow_origins=get_allowed_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
