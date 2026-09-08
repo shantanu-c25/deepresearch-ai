@@ -16,6 +16,13 @@ from backend.agents.research_agent import (
 from backend.models.source import (
     ResearchSource,
 )
+from backend.rag.langchain_adapter import (
+    RAGPipelineRetriever,
+    build_retrieval_context_chain,
+)
+from backend.rag.service import (
+    RAGPipelineService,
+)
 from backend.retrieval import (
     MultiSourceRetriever,
     prepare_evidence,
@@ -26,6 +33,21 @@ from backend.validation import (
 
 
 logger = logging.getLogger(__name__)
+
+
+def _get_shared_rag_service() -> RAGPipelineService:
+    try:
+        import backend.main as main_module
+    except Exception:
+        main_module = None
+
+    if main_module is not None and getattr(main_module, "rag_pipeline_service", None) is not None:
+        return main_module.rag_pipeline_service
+
+    return RAGPipelineService(
+        source_retriever=MultiSourceRetriever(),
+        validator=SourceValidator(),
+    )
 
 
 def _run_stage(
@@ -55,6 +77,58 @@ def _run_stage(
     return result
 
 
+def _documents_to_sources(
+    documents: list[object],
+) -> list[ResearchSource]:
+    sources: list[ResearchSource] = []
+
+    for document in documents:
+        metadata = getattr(document, "metadata", {}) or {}
+        if not isinstance(metadata, dict):
+            continue
+
+        source_id = (
+            metadata.get("source_id")
+            or metadata.get("chunk_id")
+            or metadata.get("filename")
+            or "source"
+        )
+        title = (
+            metadata.get("source_title")
+            or metadata.get("filename")
+            or str(source_id)
+        )
+        url = metadata.get("source_url") or ""
+        source_type = metadata.get("source_type") or "unknown"
+        if source_type == "uploaded_document":
+            source_type = "documentation"
+        provider = metadata.get("provider") or "manual"
+        authors = metadata.get("authors", [])
+        if not isinstance(authors, list):
+            authors = [str(authors)] if authors else []
+
+        sources.append(
+            ResearchSource(
+                id=str(source_id),
+                citation_id=metadata.get("citation_id"),
+                title=str(title),
+                url=str(url),
+                domain=str(metadata.get("domain") or ""),
+                source_type=str(source_type),
+                provider=str(provider),
+                snippet=getattr(document, "page_content", "") or "",
+                content=getattr(document, "page_content", "") or "",
+                authors=[str(author) for author in authors],
+                published_date=metadata.get("published_date"),
+                relevance_score=float(metadata.get("relevance_score", 0.0)),
+                credibility=str(metadata.get("credibility") or "unrated"),
+                validation_status=str(metadata.get("validation_status") or "accepted"),
+            )
+        )
+
+    return sources
+
+
 def _prepare_research_evidence(
     question: str,
 ) -> tuple[
@@ -62,80 +136,83 @@ def _prepare_research_evidence(
     list[ResearchSource],
 ]:
     logger.info(
-        "[Source Retrieval] STARTED"
+        "[RAG Retrieval] STARTED"
     )
 
     try:
-        collection = (
-            MultiSourceRetriever()
-            .search(
-                question,
-                web_results=5,
-                paper_results=5,
-                max_sources=10,
-            )
+        rag_service = _get_shared_rag_service()
+        retriever = RAGPipelineRetriever(
+            rag_service=rag_service,
+            top_k=5,
+        )
+        retrieval_context = build_retrieval_context_chain(
+            retriever
+        ).invoke(question)
+        context_text = (
+            retrieval_context.get("context_text") or ""
+        )
+        cited_sources = _documents_to_sources(
+            retrieval_context.get("documents", [])
         )
 
         logger.info(
             (
-                "[Source Retrieval] "
+                "[RAG Retrieval] "
                 "COMPLETED - %s "
-                "unique sources found"
+                "retrieved sources"
             ),
-            collection.total_found,
-        )
-
-        validated = (
-            SourceValidator()
-            .validate_collection(
-                collection
-            )
-        )
-
-        logger.info(
-            (
-                "[Source Validation] "
-                "COMPLETED - "
-                "%s accepted, "
-                "%s review, "
-                "%s rejected"
-            ),
-            len(
-                validated.accepted_sources
-            ),
-            len(
-                validated.review_sources
-            ),
-            len(
-                validated.rejected_sources
-            ),
-        )
-
-        (
-            evidence_context,
-            cited_sources,
-        ) = prepare_evidence(
-            validated.accepted_sources
+            len(cited_sources),
         )
 
         return (
-            evidence_context,
+            context_text,
             cited_sources,
         )
 
     except Exception:
         logger.exception(
             (
-                "[Source Retrieval] "
+                "[RAG Retrieval] "
                 "FAILED - continuing "
                 "without external evidence"
             )
         )
 
-        return (
-            "",
-            [],
-        )
+        try:
+            collection = (
+                MultiSourceRetriever()
+                .search(
+                    question,
+                    web_results=5,
+                    paper_results=5,
+                    max_sources=10,
+                )
+            )
+            validated = (
+                SourceValidator()
+                .validate_collection(
+                    collection
+                )
+            )
+            evidence_context, cited_sources = prepare_evidence(
+                validated.accepted_sources
+            )
+            return (
+                evidence_context,
+                cited_sources,
+            )
+        except Exception:
+            logger.exception(
+                (
+                    "[Legacy Source Retrieval] "
+                    "FAILED - continuing "
+                    "without external evidence"
+                )
+            )
+            return (
+                "",
+                [],
+            )
 
 
 def run_deep_research(

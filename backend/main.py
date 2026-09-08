@@ -13,7 +13,7 @@ from backend.models.source import (
 from backend.orchestrator import run_deep_research
 from backend.services.gemini_service import generate_response
 from backend.rag.models import RAGContext
-from backend.rag.service import RAGPipelineService
+from backend.rag.service import RAGPipelineService, get_rag_pipeline_service
 from backend.rag.uploaded_loader import (
     DocumentLoadError,
     MAX_UPLOAD_BYTES,
@@ -95,7 +95,7 @@ rag_pipeline_service: RAGPipelineService | None = None
 def _get_rag_pipeline_service() -> RAGPipelineService:
     global rag_pipeline_service
     if rag_pipeline_service is None:
-        rag_pipeline_service = RAGPipelineService()
+        rag_pipeline_service = get_rag_pipeline_service()
     return rag_pipeline_service
 
 
