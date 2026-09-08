@@ -109,6 +109,20 @@ def extract_citation_ids(text: str) -> list[str]:
     ]
 
 
+def normalize_evidence_context(
+    context: str,
+    registry: CitationRegistry,
+) -> str:
+    """Replace internal source markers with registry citation markers."""
+    normalized = context
+    for entry in registry.entries:
+        normalized = normalized.replace(
+            f"[{entry.source.id}]",
+            f"[{entry.citation_id}]",
+        )
+    return normalized
+
+
 def validate_citations(
     text: str,
     registry: CitationRegistry,

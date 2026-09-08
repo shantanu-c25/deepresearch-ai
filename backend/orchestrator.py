@@ -1,6 +1,9 @@
 import logging
 import time
 from collections.abc import Callable
+from typing import TypedDict
+
+from langgraph.graph import END, START, StateGraph
 
 from backend.agents.analysis_agent import (
     run_analysis_agent,
@@ -31,7 +34,9 @@ from backend.retrieval import (
 )
 from backend.retrieval.citations import (
     CitationRegistry,
+    CitationValidation,
     build_citation_registry,
+    normalize_evidence_context,
     sanitize_invalid_citations,
 )
 from backend.validation import (
@@ -40,6 +45,19 @@ from backend.validation import (
 
 
 logger = logging.getLogger(__name__)
+
+
+class ResearchGraphState(TypedDict, total=False):
+    question: str
+    evidence_context: str
+    sources: list[ResearchSource]
+    citation_registry: CitationRegistry
+    allowed_citation_ids: list[str]
+    research_brief: str
+    critical_analysis: str
+    insights: str
+    final_report: str
+    citation_validation: CitationValidation
 
 
 def _get_shared_rag_service() -> RAGPipelineService:
@@ -168,12 +186,9 @@ def _prepare_research_evidence(
         cited_sources = _documents_to_sources(
             documents
         )
-        registry = build_citation_registry(cited_sources)
         context_text = langchain_documents_to_context(
             documents,
-            registry.source_to_citation,
         )
-        cited_sources = registry.sources
 
         logger.info(
             (
@@ -252,87 +267,170 @@ def _sanitize_stage_output(
     return sanitized
 
 
+def _retrieve_evidence_node(
+    state: ResearchGraphState,
+) -> ResearchGraphState:
+    evidence_context, sources = _prepare_research_evidence(
+        state["question"]
+    )
+    return {
+        "evidence_context": evidence_context,
+        "sources": sources,
+    }
+
+
+def _normalize_citations_node(
+    state: ResearchGraphState,
+) -> ResearchGraphState:
+    registry = build_citation_registry(
+        state.get("sources", [])
+    )
+    return {
+        "citation_registry": registry,
+        "sources": registry.sources,
+        "evidence_context": normalize_evidence_context(
+            state.get("evidence_context", ""),
+            registry,
+        ),
+        "allowed_citation_ids": sorted(registry.allowed_ids),
+    }
+
+
+def _research_node(
+    state: ResearchGraphState,
+) -> ResearchGraphState:
+    registry = state["citation_registry"]
+    output = _run_stage(
+        "Research Agent",
+        lambda: run_research_agent(
+            state["question"],
+            state.get("evidence_context", ""),
+        ),
+    )
+    return {
+        "research_brief": _sanitize_stage_output(
+            "Research Agent",
+            output,
+            registry,
+        )
+    }
+
+
+def _critical_analysis_node(
+    state: ResearchGraphState,
+) -> ResearchGraphState:
+    output = _run_stage(
+        "Critical Analysis Agent",
+        lambda: run_analysis_agent(
+            state["question"],
+            state["research_brief"],
+        ),
+    )
+    return {
+        "critical_analysis": _sanitize_stage_output(
+            "Critical Analysis Agent",
+            output,
+            state["citation_registry"],
+        )
+    }
+
+
+def _insights_node(
+    state: ResearchGraphState,
+) -> ResearchGraphState:
+    output = _run_stage(
+        "Insight Agent",
+        lambda: run_insight_agent(
+            state["question"],
+            state["research_brief"],
+            state["critical_analysis"],
+        ),
+    )
+    return {
+        "insights": _sanitize_stage_output(
+            "Insight Agent",
+            output,
+            state["citation_registry"],
+        )
+    }
+
+
+def _report_node(
+    state: ResearchGraphState,
+) -> ResearchGraphState:
+    output = _run_stage(
+        "Report Builder Agent",
+        lambda: run_report_builder_agent(
+            state["question"],
+            state["research_brief"],
+            state["critical_analysis"],
+            state["insights"],
+            state.get("evidence_context", ""),
+            state.get("allowed_citation_ids", []),
+        ),
+    )
+    return {"final_report": output}
+
+
+def _validate_citations_node(
+    state: ResearchGraphState,
+) -> ResearchGraphState:
+    sanitized_report, validation = sanitize_invalid_citations(
+        state["final_report"],
+        state["citation_registry"],
+    )
+    if validation.invalid_ids:
+        logger.warning(
+            "[Report Builder Agent] removed unknown citation IDs: %s",
+            ", ".join(validation.invalid_ids),
+        )
+    return {
+        "final_report": sanitized_report,
+        "citation_validation": validation,
+        "sources": state["citation_registry"].sources,
+    }
+
+
+def build_research_graph():
+    """Compile the explicit in-process research workflow."""
+    graph = StateGraph(ResearchGraphState)
+    graph.add_node("retrieve_evidence", _retrieve_evidence_node)
+    graph.add_node("normalize_citations", _normalize_citations_node)
+    graph.add_node("research", _research_node)
+    graph.add_node("critical_analysis", _critical_analysis_node)
+    graph.add_node("generate_insights", _insights_node)
+    graph.add_node("build_report", _report_node)
+    graph.add_node("validate_citations", _validate_citations_node)
+
+    graph.add_edge(START, "retrieve_evidence")
+    graph.add_edge("retrieve_evidence", "normalize_citations")
+    graph.add_edge("normalize_citations", "research")
+    graph.add_edge("research", "critical_analysis")
+    graph.add_edge("critical_analysis", "generate_insights")
+    graph.add_edge("generate_insights", "build_report")
+    graph.add_edge("build_report", "validate_citations")
+    graph.add_edge("validate_citations", END)
+    return graph.compile()
+
+
 def run_deep_research(
     question: str,
 ) -> dict[str, object]:
-    (
-        evidence_context,
-        cited_sources,
-    ) = _prepare_research_evidence(
-        question
+    started_at = time.perf_counter()
+    final_state = build_research_graph().invoke(
+        {"question": question}
     )
-    citation_registry = build_citation_registry(
-        cited_sources
-    )
-
-    research_brief = _run_stage(
-        "Research Agent",
-        lambda: run_research_agent(
-            question,
-            evidence_context,
-        ),
-    )
-    research_brief = _sanitize_stage_output(
-        "Research Agent",
-        research_brief,
-        citation_registry,
-    )
-
-    critical_analysis = _run_stage(
-        "Critical Analysis Agent",
-        lambda: run_analysis_agent(
-            question,
-            research_brief,
-        ),
-    )
-    critical_analysis = _sanitize_stage_output(
-        "Critical Analysis Agent",
-        critical_analysis,
-        citation_registry,
-    )
-
-    insights = _run_stage(
-        "Insight Agent",
-        lambda: run_insight_agent(
-            question,
-            research_brief,
-            critical_analysis,
-        ),
-    )
-    insights = _sanitize_stage_output(
-        "Insight Agent",
-        insights,
-        citation_registry,
-    )
-
-    final_report = _run_stage(
-        "Report Builder Agent",
-        lambda: run_report_builder_agent(
-            question,
-            research_brief,
-            critical_analysis,
-            insights,
-            evidence_context,
-            sorted(citation_registry.allowed_ids),
-        ),
-    )
-    final_report = _sanitize_stage_output(
-        "Report Builder Agent",
-        final_report,
-        citation_registry,
+    elapsed_ms = round((time.perf_counter() - started_at) * 1000, 2)
+    logger.info(
+        "[Research Graph] COMPLETED in %.2fms",
+        elapsed_ms,
     )
 
     return {
-        "question": question,
-        "research_brief": (
-            research_brief
-        ),
-        "critical_analysis": (
-            critical_analysis
-        ),
-        "insights": insights,
-        "final_report": (
-            final_report
-        ),
-        "sources": citation_registry.sources,
+        "question": final_state["question"],
+        "research_brief": final_state["research_brief"],
+        "critical_analysis": final_state["critical_analysis"],
+        "insights": final_state["insights"],
+        "final_report": final_state["final_report"],
+        "sources": final_state["sources"],
     }
