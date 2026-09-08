@@ -52,6 +52,10 @@ export function useResearch() {
 
   const submitResearch =
     useCallback(async () => {
+      if (isLoading) {
+        return;
+      }
+
       const trimmedQuestion =
         question.trim();
 
@@ -89,7 +93,7 @@ export function useResearch() {
       } finally {
         setIsLoading(false);
       }
-    }, [question]);
+    }, [isLoading, question]);
 
 
   const resetResearch =

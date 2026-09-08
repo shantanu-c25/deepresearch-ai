@@ -187,7 +187,7 @@ function StageBadge({
   if (state === "active") {
     return (
       <Badge variant="primary">
-        In progress
+        Running
       </Badge>
     );
   }
@@ -272,7 +272,7 @@ export function ResearchPipeline({
 
           {status === "running" && (
             <Badge variant="primary">
-              Research running
+              Running
             </Badge>
           )}
 

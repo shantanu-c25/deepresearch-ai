@@ -214,6 +214,120 @@ describe("Home page", () => {
 
 
   it(
+    "keeps the product identity and copyright footer accessible",
+    () => {
+      mockedGetHealth.mockResolvedValue({
+        status: "ok",
+        service: "deep-research-api",
+      });
+
+      renderHome();
+
+      expect(
+        screen.getByRole("heading", {
+          name: "DeepResearch AI",
+        })
+      ).toBeInTheDocument();
+
+      expect(
+        screen.getByRole("contentinfo")
+      ).toHaveTextContent(
+        "© 2026 Shantanu Chattopadhyay"
+      );
+    }
+  );
+
+
+  it(
+    "rejects unsupported documents with an accessible error",
+    async () => {
+      const user = userEvent.setup({
+        applyAccept: false,
+      });
+
+      mockedGetHealth.mockResolvedValue({
+        status: "ok",
+        service: "deep-research-api",
+      });
+
+      renderHome();
+
+      await user.upload(
+        screen.getByLabelText("Document file"),
+        new File(["not supported"], "evidence.exe", {
+          type: "application/octet-stream",
+        })
+      );
+
+      expect(
+        await screen.findByRole("alert")
+      ).toHaveTextContent(
+        "Unsupported file type"
+      );
+      expect(mockedUploadDocument).not.toHaveBeenCalled();
+    }
+  );
+
+
+  it(
+    "prevents duplicate research submissions while running",
+    async () => {
+      const user = userEvent.setup();
+      let finishResearch: (
+        response: {
+          question: string;
+          research_brief: string;
+          critical_analysis: string;
+          insights: string;
+          final_report: string;
+          sources: [];
+        }
+      ) => void = () => {};
+
+      mockedGetHealth.mockResolvedValue({
+        status: "ok",
+        service: "deep-research-api",
+      });
+      mockedRunResearch.mockReturnValue(
+        new Promise((resolve) => {
+          finishResearch = resolve;
+        })
+      );
+
+      renderHome();
+
+      await user.type(
+        screen.getByLabelText(
+          "What would you like to research?"
+        ),
+        "Explain RAG."
+      );
+
+      const researchButton = screen.getByRole(
+        "button",
+        { name: "Start Deep Research" }
+      );
+
+      await user.click(researchButton);
+      expect(researchButton).toBeDisabled();
+      expect(mockedRunResearch).toHaveBeenCalledTimes(1);
+
+      await user.click(researchButton);
+      expect(mockedRunResearch).toHaveBeenCalledTimes(1);
+
+      finishResearch({
+        question: "Explain RAG.",
+        research_brief: "RAG brief",
+        critical_analysis: "RAG analysis",
+        insights: "RAG insights",
+        final_report: "RAG report",
+        sources: [],
+      });
+    }
+  );
+
+
+  it(
     "does not submit research while document indexing is active",
     async () => {
       const user = userEvent.setup();

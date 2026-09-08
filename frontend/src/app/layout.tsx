@@ -33,6 +33,11 @@ export const metadata: Metadata = {
 
   applicationName:
     "DeepResearch AI",
+
+  icons: {
+    icon: "/icon.svg",
+    apple: "/icon.svg",
+  },
 };
 
 

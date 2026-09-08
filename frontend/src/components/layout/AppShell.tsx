@@ -20,6 +20,20 @@ export function AppShell({
       "
     >
       {children}
+
+        <footer
+          className="
+            app-container
+            border-t
+            border-[var(--border)]
+            py-6
+            text-center
+            text-sm
+            text-[var(--text-secondary)]
+          "
+        >
+          © 2026 Shantanu Chattopadhyay
+        </footer>
     </div>
   );
 }

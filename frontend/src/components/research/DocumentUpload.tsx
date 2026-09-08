@@ -7,6 +7,15 @@ import { uploadDocument, type UploadDocumentResponse } from "@/lib/api";
 
 
 const ACCEPTED_FORMATS = ".pdf,.docx,.txt,.md,.markdown,.csv,.xlsx";
+const ACCEPTED_EXTENSIONS = new Set([
+  ".pdf",
+  ".docx",
+  ".txt",
+  ".md",
+  ".markdown",
+  ".csv",
+  ".xlsx",
+]);
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
 type DocumentUploadProps = {
@@ -30,6 +39,18 @@ export function DocumentUpload({
       setError("Files must be smaller than 10 MB.");
       return;
     }
+
+    if (
+      nextFile &&
+      !ACCEPTED_EXTENSIONS.has(
+        nextFile.name.slice(nextFile.name.lastIndexOf(".")).toLowerCase()
+      )
+    ) {
+      setFile(null);
+      setError("Unsupported file type. Choose PDF, DOCX, TXT, Markdown, CSV, or XLSX.");
+      return;
+    }
+
     setFile(nextFile);
   }
 
@@ -91,9 +112,9 @@ export function DocumentUpload({
           </Button>
         </div>
 
-        {isUploading && <p role="status" aria-live="polite" className="mt-3 text-sm text-[var(--text-secondary)]">Reading and indexing your document...</p>}
+        {isUploading && <p role="status" aria-live="polite" aria-atomic="true" className="mt-3 text-sm text-[var(--text-secondary)]">Reading and indexing your document...</p>}
         {error && <p id="document-upload-error" role="alert" className="mt-3 text-sm font-medium text-[var(--danger)]">{error}</p>}
-        {result && <p role="status" aria-live="polite" className="mt-3 text-sm font-medium text-[var(--success)]">{result.filename} indexed successfully. {result.chunks} chunks are ready for retrieval.</p>}
+        {result && <p role="status" aria-live="polite" aria-atomic="true" className="mt-3 text-sm font-medium text-[var(--success)]">Success: {result.filename} indexed successfully. {result.chunks} chunks are ready for retrieval.</p>}
       </div>
     </Card>
   );
