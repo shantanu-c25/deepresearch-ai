@@ -1,4 +1,5 @@
 import os
+import time
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -21,9 +22,14 @@ def get_gemini_client() -> genai.Client:
 def generate_response(prompt: str) -> str:
     client = get_gemini_client()
 
+    started_at = time.perf_counter()
+
     response = client.models.generate_content(
         model="gemini-3.6-flash",
         contents=prompt,
     )
+
+    elapsed_ms = round((time.perf_counter() - started_at) * 1000, 2)
+    print(f"[Gemini] generate_content completed in {elapsed_ms}ms")
 
     return response.text or ""

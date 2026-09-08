@@ -1,6 +1,10 @@
 "use client";
 
 import {
+  useState,
+} from "react";
+
+import {
   ErrorAlert,
 } from "@/components/feedback/ErrorAlert";
 
@@ -42,6 +46,9 @@ import {
 
 
 export default function Home() {
+  const [isUploadInProgress, setIsUploadInProgress] =
+    useState(false);
+
   const {
     status: backendStatus,
   } = useBackendHealth();
@@ -98,12 +105,19 @@ export default function Home() {
             isLoading={
               isLoading
             }
+            isUploadInProgress={
+              isUploadInProgress
+            }
             hasError={
               Boolean(error)
             }
-          />
-
-          <DocumentUpload />
+          >
+            <DocumentUpload
+              onUploadingChange={
+                setIsUploadInProgress
+              }
+            />
+          </ResearchForm>
 
           {error && (
             <ErrorAlert

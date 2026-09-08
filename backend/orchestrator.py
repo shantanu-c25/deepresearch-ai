@@ -1,4 +1,5 @@
 import logging
+import time
 from collections.abc import Callable
 
 from backend.agents.analysis_agent import (
@@ -59,6 +60,8 @@ def _run_stage(
         stage_name,
     )
 
+    started_at = time.perf_counter()
+
     try:
         result = action()
     except Exception:
@@ -72,6 +75,13 @@ def _run_stage(
     logger.info(
         "[%s] COMPLETED",
         stage_name,
+    )
+
+    elapsed_ms = round((time.perf_counter() - started_at) * 1000, 2)
+    logger.info(
+        "[%s] COMPLETED in %.2fms",
+        stage_name,
+        elapsed_ms,
     )
 
     return result

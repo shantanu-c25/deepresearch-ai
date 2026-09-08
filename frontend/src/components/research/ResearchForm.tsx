@@ -2,6 +2,7 @@
 
 import type {
   FormEvent,
+  ReactNode,
 } from "react";
 
 import {
@@ -17,6 +18,8 @@ import {
 type ResearchFormProps = {
   question: string;
 
+  children?: ReactNode;
+
   onQuestionChange: (
     question: string
   ) => void;
@@ -25,6 +28,8 @@ type ResearchFormProps = {
     void | Promise<void>;
 
   isLoading: boolean;
+
+  isUploadInProgress?: boolean;
 
   hasError?: boolean;
 };
@@ -68,6 +73,8 @@ export function ResearchForm({
   onSubmit,
   isLoading,
   hasError = false,
+  isUploadInProgress = false,
+  children,
 }: ResearchFormProps) {
   function handleSubmit(
     event: FormEvent<HTMLFormElement>
@@ -169,6 +176,12 @@ export function ResearchForm({
               disabled:opacity-70
             "
           />
+
+          {children && (
+            <div className="mt-5">
+              {children}
+            </div>
+          )}
         </div>
 
 
@@ -241,7 +254,8 @@ export function ResearchForm({
           <Button
             type="submit"
             size="lg"
-            isLoading={isLoading}
+            isLoading={isLoading || isUploadInProgress}
+            disabled={isUploadInProgress}
             className="
               w-full
               sm:w-auto

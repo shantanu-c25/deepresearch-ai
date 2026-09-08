@@ -17,6 +17,7 @@ import {
 import {
   getHealth,
   runResearch,
+  uploadDocument,
 } from "@/lib/api";
 
 import {
@@ -29,6 +30,7 @@ import Home from "./page";
 vi.mock("@/lib/api", () => ({
   getHealth: vi.fn(),
   runResearch: vi.fn(),
+  uploadDocument: vi.fn(),
 }));
 
 
@@ -37,6 +39,9 @@ const mockedGetHealth =
 
 const mockedRunResearch =
   vi.mocked(runResearch);
+
+const mockedUploadDocument =
+  vi.mocked(uploadDocument);
 
 
 function renderHome() {
@@ -170,6 +175,121 @@ describe("Home page", () => {
           "RAG combines retrieval with generation to produce grounded responses."
         )
       ).toBeInTheDocument();
+    }
+  );
+
+
+  it(
+    "keeps document upload inside the research task card",
+    async () => {
+      mockedGetHealth.mockResolvedValue({
+        status: "ok",
+        service: "deep-research-api",
+      });
+
+      renderHome();
+
+      expect(
+        screen.getByLabelText(
+          "What would you like to research?"
+        )
+      ).toBeInTheDocument();
+
+      expect(
+        screen.getByLabelText(
+          "Document file"
+        )
+      ).toBeInTheDocument();
+
+      expect(
+        screen.getByRole(
+          "button",
+          {
+            name: "Start Deep Research",
+          }
+        )
+      ).toBeInTheDocument();
+    }
+  );
+
+
+  it(
+    "does not submit research while document indexing is active",
+    async () => {
+      const user = userEvent.setup();
+      let finishUpload: (
+        response: {
+          status: string;
+          document_id: string;
+          filename: string;
+          file_type: string;
+          sections: number;
+          chunks: number;
+        }
+      ) => void = () => {};
+
+      mockedGetHealth.mockResolvedValue({
+        status: "ok",
+        service: "deep-research-api",
+      });
+      mockedUploadDocument.mockReturnValue(
+        new Promise((resolve) => {
+          finishUpload = resolve;
+        })
+      );
+
+      renderHome();
+
+      await user.type(
+        screen.getByLabelText(
+          "What would you like to research?"
+        ),
+        "Explain RAG."
+      );
+
+      const file = new File(
+        ["RAG evidence"],
+        "evidence.txt",
+        { type: "text/plain" }
+      );
+
+      await user.upload(
+        screen.getByLabelText("Document file"),
+        file
+      );
+      await user.click(
+        screen.getByRole(
+          "button",
+          { name: "Upload and index" }
+        )
+      );
+
+      const researchButton = screen.getByRole(
+        "button",
+        { name: "Start Deep Research" }
+      );
+
+      expect(researchButton).toBeDisabled();
+
+      expect(mockedRunResearch).not.toHaveBeenCalled();
+
+      finishUpload({
+        status: "ok",
+        document_id: "doc-1",
+        filename: "evidence.txt",
+        file_type: "text/plain",
+        sections: 1,
+        chunks: 1,
+      });
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole(
+            "button",
+            { name: "Start Deep Research" }
+          )
+        ).not.toBeDisabled();
+      });
     }
   );
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type FormEvent } from "react";
+import { useRef, useState } from "react";
 
 import { Button, Card } from "@/components/ui";
 import { uploadDocument, type UploadDocumentResponse } from "@/lib/api";
@@ -9,8 +9,13 @@ import { uploadDocument, type UploadDocumentResponse } from "@/lib/api";
 const ACCEPTED_FORMATS = ".pdf,.docx,.txt,.md,.markdown,.csv,.xlsx";
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
+type DocumentUploadProps = {
+  onUploadingChange?: (isUploading: boolean) => void;
+};
 
-export function DocumentUpload() {
+export function DocumentUpload({
+  onUploadingChange,
+}: DocumentUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -28,8 +33,7 @@ export function DocumentUpload() {
     setFile(nextFile);
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleSubmit() {
     if (!file) {
       setError("Choose a document before uploading.");
       return;
@@ -37,6 +41,7 @@ export function DocumentUpload() {
     setError("");
     setResult(null);
     setIsUploading(true);
+    onUploadingChange?.(true);
     try {
       setResult(await uploadDocument(file));
       setFile(null);
@@ -45,12 +50,13 @@ export function DocumentUpload() {
       setError(uploadError instanceof Error ? uploadError.message : "Document upload failed.");
     } finally {
       setIsUploading(false);
+      onUploadingChange?.(false);
     }
   }
 
   return (
-    <Card className="mx-auto mt-5 max-w-4xl p-5 sm:p-6">
-      <form onSubmit={handleSubmit} aria-labelledby="document-upload-title">
+    <Card className="mt-4 border border-[var(--border)] bg-[var(--surface-subtle)] p-4 sm:p-5">
+      <div aria-labelledby="document-upload-title">
         <div>
           <h3 id="document-upload-title" className="text-base font-semibold text-[var(--text-primary)]">
             Add a research document
@@ -80,7 +86,7 @@ export function DocumentUpload() {
         {file && <p className="mt-2 text-sm text-[var(--text-secondary)]">Selected: {file.name}</p>}
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Button type="submit" isLoading={isUploading} disabled={!file}>
+          <Button type="button" variant="secondary" onClick={handleSubmit} isLoading={isUploading} disabled={!file}>
             {isUploading ? "Indexing document" : "Upload and index"}
           </Button>
         </div>
@@ -88,7 +94,7 @@ export function DocumentUpload() {
         {isUploading && <p role="status" aria-live="polite" className="mt-3 text-sm text-[var(--text-secondary)]">Reading and indexing your document...</p>}
         {error && <p id="document-upload-error" role="alert" className="mt-3 text-sm font-medium text-[var(--danger)]">{error}</p>}
         {result && <p role="status" aria-live="polite" className="mt-3 text-sm font-medium text-[var(--success)]">{result.filename} indexed successfully. {result.chunks} chunks are ready for retrieval.</p>}
-      </form>
+      </div>
     </Card>
   );
 }
