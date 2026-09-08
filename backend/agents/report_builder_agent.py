@@ -6,7 +6,12 @@ def run_report_builder_agent(
     research_brief: str,
     critical_analysis: str,
     insights: str,
+    evidence_context: str = "",
+    allowed_citation_ids: list[str] | None = None,
 ) -> str:
+    allowed_ids = ", ".join(
+        allowed_citation_ids or []
+    ) or "none"
     prompt = f"""
 You are the Report Builder Agent for DeepResearch AI.
 
@@ -24,6 +29,12 @@ Critical analysis:
 
 Insights:
 {insights}
+
+Allowed citation IDs:
+{allowed_ids}
+
+Retrieved evidence available for citation support:
+{evidence_context or "No external evidence was provided."}
 
 Create a final report with these sections:
 
@@ -55,6 +66,9 @@ Provide a balanced conclusion.
 
 Important instructions:
 - Do not invent citations or sources.
+- Use only the allowed citation IDs listed above, preserving them exactly.
+- Place citations immediately after supported factual claims where practical.
+- Never invent a URL; the trusted source list supplies source URLs.
 - Do not claim that information has been verified unless it actually has.
 - Clearly distinguish findings from hypotheses or assumptions.
 - Avoid unnecessary repetition.

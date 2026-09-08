@@ -24,6 +24,8 @@ Analyze the brief and return:
 
 Be critical, precise, and evidence-oriented.
 Do not simply repeat the research brief.
+Preserve valid [S<number>] citations from the research brief where useful.
+Do not invent citation IDs, URLs, or sources.
 """
 
     return generate_response(prompt)

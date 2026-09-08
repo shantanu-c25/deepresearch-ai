@@ -111,6 +111,8 @@ def test_orchestrator_passes_evidence_to_research_agent(
         brief,
         analysis,
         insights,
+        evidence_context="",
+        allowed_citation_ids=None,
     ):
         return "Final report"
 
@@ -226,6 +228,8 @@ def test_orchestrator_survives_retrieval_failure(
         brief,
         analysis,
         insights,
+        evidence_context="",
+        allowed_citation_ids=None,
     ):
         return "Final report"
 

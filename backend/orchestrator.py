@@ -20,6 +20,7 @@ from backend.models.source import (
 from backend.rag.langchain_adapter import (
     RAGPipelineRetriever,
     build_retrieval_context_chain,
+    langchain_documents_to_context,
 )
 from backend.rag.service import (
     RAGPipelineService,
@@ -27,6 +28,11 @@ from backend.rag.service import (
 from backend.retrieval import (
     MultiSourceRetriever,
     prepare_evidence,
+)
+from backend.retrieval.citations import (
+    CitationRegistry,
+    build_citation_registry,
+    sanitize_invalid_citations,
 )
 from backend.validation import (
     SourceValidator,
@@ -158,12 +164,16 @@ def _prepare_research_evidence(
         retrieval_context = build_retrieval_context_chain(
             retriever
         ).invoke(question)
-        context_text = (
-            retrieval_context.get("context_text") or ""
-        )
+        documents = retrieval_context.get("documents", [])
         cited_sources = _documents_to_sources(
-            retrieval_context.get("documents", [])
+            documents
         )
+        registry = build_citation_registry(cited_sources)
+        context_text = langchain_documents_to_context(
+            documents,
+            registry.source_to_citation,
+        )
+        cited_sources = registry.sources
 
         logger.info(
             (
@@ -224,6 +234,23 @@ def _prepare_research_evidence(
                 [],
             )
 
+def _sanitize_stage_output(
+    stage_name: str,
+    output: str,
+    registry: CitationRegistry,
+) -> str:
+    sanitized, validation = sanitize_invalid_citations(
+        output,
+        registry,
+    )
+    if validation.invalid_ids:
+        logger.warning(
+            "[%s] removed unknown citation IDs: %s",
+            stage_name,
+            ", ".join(validation.invalid_ids),
+        )
+    return sanitized
+
 
 def run_deep_research(
     question: str,
@@ -234,6 +261,9 @@ def run_deep_research(
     ) = _prepare_research_evidence(
         question
     )
+    citation_registry = build_citation_registry(
+        cited_sources
+    )
 
     research_brief = _run_stage(
         "Research Agent",
@@ -242,6 +272,11 @@ def run_deep_research(
             evidence_context,
         ),
     )
+    research_brief = _sanitize_stage_output(
+        "Research Agent",
+        research_brief,
+        citation_registry,
+    )
 
     critical_analysis = _run_stage(
         "Critical Analysis Agent",
@@ -249,6 +284,11 @@ def run_deep_research(
             question,
             research_brief,
         ),
+    )
+    critical_analysis = _sanitize_stage_output(
+        "Critical Analysis Agent",
+        critical_analysis,
+        citation_registry,
     )
 
     insights = _run_stage(
@@ -259,6 +299,11 @@ def run_deep_research(
             critical_analysis,
         ),
     )
+    insights = _sanitize_stage_output(
+        "Insight Agent",
+        insights,
+        citation_registry,
+    )
 
     final_report = _run_stage(
         "Report Builder Agent",
@@ -267,7 +312,14 @@ def run_deep_research(
             research_brief,
             critical_analysis,
             insights,
+            evidence_context,
+            sorted(citation_registry.allowed_ids),
         ),
+    )
+    final_report = _sanitize_stage_output(
+        "Report Builder Agent",
+        final_report,
+        citation_registry,
     )
 
     return {
@@ -282,5 +334,5 @@ def run_deep_research(
         "final_report": (
             final_report
         ),
-        "sources": cited_sources,
+        "sources": citation_registry.sources,
     }

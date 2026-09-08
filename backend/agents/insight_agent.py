@@ -32,6 +32,9 @@ Return:
 
 Do not simply summarize the previous outputs.
 Focus on synthesis, connections, and useful new insights.
+Preserve valid [S<number>] citations from the supplied material where useful.
+Distinguish evidence-backed findings from inferences and hypotheses.
+Do not invent citation IDs, URLs, or sources.
 """
 
     return generate_response(prompt)

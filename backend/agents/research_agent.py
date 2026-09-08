@@ -59,16 +59,19 @@ EVIDENCE RULES
    use it as the primary factual basis
    for the research brief.
 
-2. Evidence sources are identified by
-   citation IDs such as [S1], [S2],
-   [S3], or upload source IDs like
-   [upload-...].
+2. Evidence sources are identified only
+    by normalized citation IDs such as
+    [S1], [S2], or [S3].
 
 3. Cite relevant factual claims using
-   only citation IDs that actually
-   appear in the provided evidence.
+    only citation IDs that actually
+    appear in the provided evidence.
 
 4. Never invent a citation ID.
+
+    Never convert an internal source ID,
+    upload ID, URL, or filename into a
+    citation marker.
 
 5. Never invent a source, author,
    publication, statistic, study,

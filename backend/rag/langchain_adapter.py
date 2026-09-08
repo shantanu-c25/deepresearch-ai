@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from typing import Any, Protocol, runtime_checkable
 
 from langchain_core.documents import Document
@@ -36,9 +37,17 @@ def chunk_to_langchain_document(chunk: DocumentChunk) -> Document:
     return Document(page_content=chunk.content, metadata=metadata)
 
 
-def _document_context(document: Document) -> str:
+def _document_context(
+    document: Document,
+    citation_ids: Mapping[str, str] | None = None,
+) -> str:
     metadata = document.metadata
-    citation = metadata.get("citation_id") or metadata["source_id"]
+    source_id = metadata["source_id"]
+    citation = (
+        citation_ids.get(source_id)
+        if citation_ids is not None
+        else None
+    ) or metadata.get("citation_id") or source_id
     return (
         f"[{citation}]\n"
         f"Title: {metadata['source_title']}\n"
@@ -48,9 +57,15 @@ def _document_context(document: Document) -> str:
     )
 
 
-def langchain_documents_to_context(documents: list[Document]) -> str:
+def langchain_documents_to_context(
+    documents: list[Document],
+    citation_ids: Mapping[str, str] | None = None,
+) -> str:
     """Keep the existing semantic context shape for downstream agents."""
-    return "\n\n".join(_document_context(document) for document in documents)
+    return "\n\n".join(
+        _document_context(document, citation_ids)
+        for document in documents
+    )
 
 
 class RAGPipelineRetriever(BaseRetriever):

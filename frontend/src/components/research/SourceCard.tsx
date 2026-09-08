@@ -110,6 +110,9 @@ export function SourceCard({
       ? `source-title-${source.citation_id}`
       : undefined;
 
+  const isUploadedSource =
+    source.url.startsWith("uploaded://");
+
 
   return (
     <article
@@ -234,35 +237,37 @@ export function SourceCard({
         </div>
 
 
-        <a
-          href={source.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="
-            inline-flex
-            min-h-11
-            shrink-0
-            items-center
-            gap-2
-            rounded-[var(--radius-md)]
-            border
-            border-[var(--border)]
-            px-3
-            text-sm
-            font-medium
-            text-[var(--text-primary)]
-            transition-colors
-            hover:bg-[var(--surface-hover)]
-          "
-        >
-          Open Source
+        {!isUploadedSource && (
+          <a
+            href={source.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="
+              inline-flex
+              min-h-11
+              shrink-0
+              items-center
+              gap-2
+              rounded-[var(--radius-md)]
+              border
+              border-[var(--border)]
+              px-3
+              text-sm
+              font-medium
+              text-[var(--text-primary)]
+              transition-colors
+              hover:bg-[var(--surface-hover)]
+            "
+          >
+            Open Source
 
-          <ExternalLinkIcon />
+            <ExternalLinkIcon />
 
-          <span className="sr-only">
-            opens in a new tab
-          </span>
-        </a>
+            <span className="sr-only">
+              opens in a new tab
+            </span>
+          </a>
+        )}
       </div>
 
 

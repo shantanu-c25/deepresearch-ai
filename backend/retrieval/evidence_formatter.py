@@ -1,6 +1,9 @@
 from backend.models.source import (
     ResearchSource,
 )
+from backend.retrieval.citations import (
+    build_citation_registry,
+)
 
 
 DEFAULT_MAX_CHARS_PER_SOURCE = 1800
@@ -80,34 +83,15 @@ def prepare_evidence(
     if not sources:
         return "", []
 
-    prepared_sources: list[
-        ResearchSource
-    ] = []
+    registry = build_citation_registry(sources)
+    prepared_sources = registry.sources
 
     evidence_blocks: list[str] = []
 
 
-    for index, source in enumerate(
-        sources,
-        start=1,
-    ):
-        citation_id = (
-            f"S{index}"
-        )
-
-        prepared_source = (
-            source.model_copy(
-                deep=True
-            )
-        )
-
-        prepared_source.citation_id = (
-            citation_id
-        )
-
-        prepared_sources.append(
-            prepared_source
-        )
+    for prepared_source in prepared_sources:
+        citation_id = prepared_source.citation_id
+        assert citation_id is not None
 
 
         evidence_text = (

@@ -58,6 +58,8 @@ def test_run_deep_research(
         research_brief,
         critical_analysis,
         insights,
+        evidence_context="",
+        allowed_citation_ids=None,
     ):
         return "final report"
 
@@ -129,3 +131,68 @@ def test_run_deep_research(
         result["sources"][0].title
         == "Test Source"
     )
+
+
+def test_report_builder_receives_existing_evidence_and_allowed_ids(
+    monkeypatch,
+):
+    source = ResearchSource(
+        id="upload-blue-orchid",
+        title="blue-orchid-test.txt",
+        url="uploaded://upload-blue-orchid/blue-orchid-test.txt",
+        domain="",
+        source_type="documentation",
+        provider="manual",
+        content="The internal codename is BLUE ORCHID 742.",
+    )
+    evidence_context = (
+        "[S1]\nTitle: blue-orchid-test.txt\n"
+        "Evidence: BLUE ORCHID 742"
+    )
+    captured = {}
+
+    monkeypatch.setattr(
+        orchestrator,
+        "_prepare_research_evidence",
+        lambda question: (evidence_context, [source]),
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "run_research_agent",
+        lambda question, evidence: "Brief [S1]",
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "run_analysis_agent",
+        lambda question, brief: "Analysis [S1]",
+    )
+    monkeypatch.setattr(
+        orchestrator,
+        "run_insight_agent",
+        lambda question, brief, analysis: "Insight [S1]",
+    )
+
+    def fake_report_builder(
+        question,
+        brief,
+        analysis,
+        insights,
+        received_evidence,
+        allowed_ids,
+    ):
+        captured["evidence"] = received_evidence
+        captured["allowed_ids"] = allowed_ids
+        return "Report [S1]"
+
+    monkeypatch.setattr(
+        orchestrator,
+        "run_report_builder_agent",
+        fake_report_builder,
+    )
+
+    result = orchestrator.run_deep_research("What is the codename?")
+
+    assert captured["evidence"] == evidence_context
+    assert captured["allowed_ids"] == ["S1"]
+    assert result["sources"][0].citation_id == "S1"
+    assert result["final_report"] == "Report [S1]"

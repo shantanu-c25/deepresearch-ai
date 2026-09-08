@@ -174,7 +174,7 @@ def test_orchestrator_uses_langchain_rag_context_for_single_retrieval(
     monkeypatch.setattr(
         orchestrator,
         "run_report_builder_agent",
-        lambda question, brief, analysis, insights: "Final report",
+            lambda question, brief, analysis, insights, evidence_context="", allowed_citation_ids=None: "Final report",
     )
 
     result = orchestrator.run_deep_research("What is Project Aurora's internal codename?")
@@ -182,7 +182,7 @@ def test_orchestrator_uses_langchain_rag_context_for_single_retrieval(
     assert captured["calls"] == 1
     assert captured["question"] == "What is Project Aurora's internal codename?"
     assert result["sources"][0].id == "upload-abc123"
-    assert result["sources"][0].citation_id is None
+    assert result["sources"][0].citation_id == "S1"
 
 
 def test_shared_rag_service_keeps_uploaded_document_state_for_research(monkeypatch):
