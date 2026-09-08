@@ -37,4 +37,7 @@ Distinguish evidence-backed findings from inferences and hypotheses.
 Do not invent citation IDs, URLs, or sources.
 """
 
-    return generate_response(prompt)
+    return generate_response(
+        prompt,
+        agent="insight",
+    )

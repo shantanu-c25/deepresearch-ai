@@ -67,6 +67,42 @@ def test_research_endpoint_returns_429_when_gemini_quota_is_exhausted(
             "Please try again later."
         )
     }
+
+
+def test_research_endpoint_returns_503_when_gemini_is_unavailable(
+    monkeypatch,
+):
+    from backend.services.gemini_service import (
+        GeminiErrorCategory,
+        GeminiProviderError,
+    )
+
+    def fake_run_deep_research(question: str):
+        raise GeminiProviderError(
+            "provider unavailable",
+            code=503,
+            category=GeminiErrorCategory.TRANSIENT_UNAVAILABLE,
+            model="gemini-3.6-flash",
+            attempts=2,
+        )
+
+    monkeypatch.setattr(
+        "backend.main.run_deep_research",
+        fake_run_deep_research,
+    )
+
+    response = client.post(
+        "/research",
+        json={"question": "What is unavailable?"},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "detail": (
+            "The Gemini provider is temporarily unavailable. "
+            "Please try again shortly."
+        )
+    }
 def test_research_endpoint_returns_sources(
     monkeypatch,
 ):

@@ -28,4 +28,7 @@ Preserve valid [S<number>] citations from the research brief where useful.
 Do not invent citation IDs, URLs, or sources.
 """
 
-    return generate_response(prompt)
+    return generate_response(
+        prompt,
+        agent="analysis",
+    )

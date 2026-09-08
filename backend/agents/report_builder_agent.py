@@ -75,4 +75,7 @@ Important instructions:
 - Use professional Markdown formatting.
 """
 
-    return generate_response(prompt)
+    return generate_response(
+        prompt,
+        agent="report",
+    )

@@ -6,12 +6,21 @@ from pydantic import (
     BaseModel,
     Field,
 )
+from backend.config import load_backend_env
+
+
+load_backend_env()
+
 from backend.models.source import (
     ResearchSource,
 )
 
 from backend.orchestrator import run_deep_research
-from backend.services.gemini_service import generate_response
+from backend.services.gemini_service import (
+    GeminiErrorCategory,
+    GeminiProviderError,
+    generate_response,
+)
 from backend.rag.models import RAGContext
 from backend.rag.service import RAGPipelineService, get_rag_pipeline_service
 from backend.rag.uploaded_loader import (
@@ -123,6 +132,39 @@ def generate_ai_response(
             "response": response,
         }
 
+    except GeminiProviderError as exc:
+        if exc.category in {
+            GeminiErrorCategory.QUOTA_EXHAUSTED,
+            GeminiErrorCategory.MODEL_QUOTA_EXHAUSTED,
+        }:
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    "Gemini free-tier quota has been reached. "
+                    "Please try again later."
+                ),
+            ) from exc
+
+        if exc.category == GeminiErrorCategory.TRANSIENT_UNAVAILABLE:
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "The Gemini provider is temporarily unavailable. "
+                    "Please try again shortly."
+                ),
+            ) from exc
+
+        logger.exception(
+            "Simple Gemini generation failed."
+        )
+
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                "Failed to generate AI response."
+            ),
+        ) from exc
+
     except Exception:
         logger.exception(
             "Simple Gemini generation failed."
@@ -167,6 +209,33 @@ def run_research(
                     "Gemini free-tier quota "
                     "has been reached. "
                     "Please try again later."
+                ),
+            ) from exc
+
+        if (
+            isinstance(exc, GeminiProviderError)
+            and exc.category in {
+                GeminiErrorCategory.QUOTA_EXHAUSTED,
+                GeminiErrorCategory.MODEL_QUOTA_EXHAUSTED,
+            }
+        ):
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    "Gemini free-tier quota has been reached. "
+                    "Please try again later."
+                ),
+            ) from exc
+
+        if (
+            isinstance(exc, GeminiProviderError)
+            and exc.category == GeminiErrorCategory.TRANSIENT_UNAVAILABLE
+        ):
+            raise HTTPException(
+                status_code=503,
+                detail=(
+                    "The Gemini provider is temporarily unavailable. "
+                    "Please try again shortly."
                 ),
             ) from exc
 
