@@ -11,6 +11,7 @@ venv/
 .pytest_cache/
 .coverage
 htmlcov/
+backend/rag/onnx_model/
 
 # Node / Next.js
 node_modules/

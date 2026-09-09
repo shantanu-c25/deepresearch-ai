@@ -3,7 +3,7 @@ services:
     name: deepresearch-ai-backend
     runtime: python
     plan: free
-    buildCommand: pip install -r backend/requirements.txt
+    buildCommand: pip install -r backend/requirements.txt && python backend/scripts/export_onnx_model.py
     startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:

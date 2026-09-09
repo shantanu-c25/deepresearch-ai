@@ -186,10 +186,25 @@ def test_orchestrator_uses_langchain_rag_context_for_single_retrieval(
 
 
 def test_shared_rag_service_keeps_uploaded_document_state_for_research(monkeypatch):
+    from backend.models.source import SourceCollection
+
+    class EmptySourceRetriever:
+        def search(self, question, max_sources=8):
+            return SourceCollection(question=question, sources=[])
+
+    class FakeEmbeddingProvider:
+        def embed_texts(self, texts):
+            return [[1.0, 0.0] for _ in texts]
+
+        def embed_query(self, query):
+            return [1.0, 0.0]
+
     service = get_rag_pipeline_service()
-    service.uploaded_documents = []
-    service._indexed_chunk_ids = set()
-    service.vector_store = service.vector_store_factory()
+    monkeypatch.setattr(service, "source_retriever", EmptySourceRetriever())
+    monkeypatch.setattr(service, "embedding_provider", FakeEmbeddingProvider())
+    monkeypatch.setattr(service, "uploaded_documents", [])
+    monkeypatch.setattr(service, "_indexed_chunk_ids", set())
+    monkeypatch.setattr(service, "vector_store", service.vector_store_factory())
 
     uploaded = type(
         "Doc",
