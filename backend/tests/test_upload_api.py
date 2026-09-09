@@ -1,3 +1,5 @@
+import threading
+
 from fastapi.testclient import TestClient
 
 import backend.main as main
@@ -62,3 +64,53 @@ def test_upload_rejects_unsupported_and_empty_files():
 
     assert unsupported.status_code == 415
     assert empty.status_code == 400
+
+
+def test_health_remains_responsive_during_upload_indexing(monkeypatch):
+    indexing_started = threading.Event()
+    release_indexing = threading.Event()
+    original_index_uploaded_document = main._index_uploaded_document
+
+    class FakeService:
+        def add_uploaded_document(self, uploaded):
+            return []
+
+    shared_service = FakeService()
+    monkeypatch.setattr(main, "rag_pipeline_service", shared_service)
+
+    def blocked_indexing(data, filename, content_type):
+        indexing_started.set()
+        assert release_indexing.wait(timeout=2)
+        return original_index_uploaded_document(data, filename, content_type)
+
+    monkeypatch.setattr(main, "_index_uploaded_document", blocked_indexing)
+    client = TestClient(main.app)
+    upload_result = {}
+
+    upload_thread = threading.Thread(
+        target=lambda: upload_result.update(
+            response=client.post(
+                "/rag/documents",
+                files={"file": ("evidence.txt", b"evidence", "text/plain")},
+            )
+        )
+    )
+    upload_thread.start()
+
+    assert indexing_started.wait(timeout=2)
+
+    health_result = {}
+    health_thread = threading.Thread(
+        target=lambda: health_result.update(response=client.get("/health"))
+    )
+    health_thread.start()
+    health_thread.join(timeout=2)
+
+    release_indexing.set()
+    upload_thread.join(timeout=2)
+    health_thread.join(timeout=2)
+
+    assert not health_thread.is_alive()
+    assert health_result["response"].status_code == 200
+    assert upload_result["response"].status_code == 201
+    assert main.rag_pipeline_service is shared_service

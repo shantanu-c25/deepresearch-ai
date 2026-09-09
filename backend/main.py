@@ -2,6 +2,7 @@ import logging
 
 from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.concurrency import run_in_threadpool
 from pydantic import (
     BaseModel,
     Field,
@@ -104,6 +105,16 @@ def _get_rag_pipeline_service() -> RAGPipelineService:
     if rag_pipeline_service is None:
         rag_pipeline_service = get_rag_pipeline_service()
     return rag_pipeline_service
+
+
+def _index_uploaded_document(
+    data: bytes,
+    filename: str,
+    content_type: str | None,
+):
+    uploaded = UploadedDocumentLoader().load(data, filename, content_type)
+    chunks = _get_rag_pipeline_service().add_uploaded_document(uploaded)
+    return uploaded, chunks
 
 
 @app.get("/health")
@@ -281,8 +292,12 @@ async def upload_rag_document(file: UploadFile):
     if len(data) > MAX_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="uploaded file exceeds the 10 MB size limit")
     try:
-        uploaded = UploadedDocumentLoader().load(data, file.filename or "", file.content_type)
-        chunks = _get_rag_pipeline_service().add_uploaded_document(uploaded)
+        uploaded, chunks = await run_in_threadpool(
+            _index_uploaded_document,
+            data,
+            file.filename or "",
+            file.content_type,
+        )
         return UploadDocumentResponse(
             status="indexed",
             document_id=uploaded.document.source_id,

@@ -1,3 +1,5 @@
+import threading
+
 from fastapi.testclient import TestClient
 
 from backend.main import app
@@ -37,6 +39,52 @@ def test_research_endpoint(monkeypatch):
         "final_report": "mock final report",
         "sources": [],
     }
+
+
+def test_health_remains_responsive_during_research(monkeypatch):
+    research_started = threading.Event()
+    release_research = threading.Event()
+
+    def blocked_research(question: str):
+        research_started.set()
+        assert release_research.wait(timeout=2)
+        return {
+            "question": question,
+            "research_brief": "mock research brief",
+            "critical_analysis": "mock critical analysis",
+            "insights": "mock insights",
+            "final_report": "mock final report",
+        }
+
+    monkeypatch.setattr(main, "run_deep_research", blocked_research)
+    research_result = {}
+
+    research_thread = threading.Thread(
+        target=lambda: research_result.update(
+            response=client.post(
+                "/research",
+                json={"question": "What is agentic AI?"},
+            )
+        )
+    )
+    research_thread.start()
+
+    assert research_started.wait(timeout=2)
+
+    health_result = {}
+    health_thread = threading.Thread(
+        target=lambda: health_result.update(response=client.get("/health"))
+    )
+    health_thread.start()
+    health_thread.join(timeout=2)
+
+    release_research.set()
+    research_thread.join(timeout=2)
+    health_thread.join(timeout=2)
+
+    assert not health_thread.is_alive()
+    assert health_result["response"].status_code == 200
+    assert research_result["response"].status_code == 200
 
 
 def test_research_endpoint_returns_429_when_gemini_quota_is_exhausted(
