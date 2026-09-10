@@ -34,3 +34,6 @@ Thumbs.db
 
 # Logs
 *.log
+# Local AI/development agent files
+frontend/AGENTS.md
+frontend/CLAUDE.md
