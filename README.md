@@ -26,6 +26,26 @@ The application is designed around a practical research loop:
 6. The Research Agent builds the initial brief, the Critical Analysis Agent checks the claim quality, the Insight Generation Agent synthesizes patterns, and the Report Builder Agent produces the final report.
 7. The final response is displayed with sources and citations in the UI.
 
+## Product Walkthrough
+
+### 1. Research Workspace
+
+Start with a research question, optionally upload supporting documents, and prepare them for semantic retrieval.
+
+![DeepResearch AI research workspace](docs/screenshots/01-home.png)
+
+### 2. Multi-Agent Research Pipeline
+
+Uploaded documents are indexed for retrieval, while the research workflow moves through Research, Critical Analysis, Insight Generation, and Report Building.
+
+![DeepResearch AI multi-agent research pipeline](docs/screenshots/02-research-pipeline.png)
+
+### 3. Evidence-Grounded Report
+
+The completed workflow produces a structured research report with citation references and source evidence.
+
+![DeepResearch AI final report and sources](docs/screenshots/03-final-report-sources.png)
+
 ## Key Features
 
 - Next.js 16 frontend with React 19 and TypeScript
@@ -122,12 +142,12 @@ deepresearch-ai/
 │   ├── next.config.ts
 │   └── tsconfig.json
 ├── docs/
+│   └── screenshots/
 ├── examples/
 ├── .env.example
 ├── .gitignore
 ├── README.md
-├── render.yaml
-└── .gitignore
+└── render.yaml
 ```
 
 ## Local Setup
@@ -376,29 +396,3 @@ This project originally used the Python sentence-transformers runtime locally, b
 Shantanu Chattopadhyay
 
 Built as part of an AI Engineering hackathon.
-
-Multi-agent research results displayed in UI
-
-Gemini quota-aware error handling
-
-Backend tests
-
-Frontend tests
-
-GitHub repository
-
-Production deployment
-
-Demo video
-
-GitHub
-
-Repository:
-
-https://github.com/shantanu-c25/deepresearch-ai
-
-Author
-
-Shantanu Chattopadhyay
-
-Built as part of an AI Engineering hackathon project.
